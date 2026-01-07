@@ -3,53 +3,126 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>我的書架 Bookshelf</title>
+  <title>書架 | 我的閱讀紀錄</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>📚 我的書架</h1>
-      <p class="book-count">總共 <span id="bookCount">0</span> 本書</p>
+      <h1>書架</h1>
+      <p class="subtitle">我的閱讀紀錄</p>
     </header>
 
-    <section class="add-book-section">
-      <h2>新增書籍</h2>
-      <form id="bookForm">
-        <div class="form-group">
-          <label for="title">書名 *</label>
-          <input type="text" id="title" name="title" required placeholder="請輸入書名">
-        </div>
-
-        <div class="form-group">
-          <label for="author">作者 *</label>
-          <input type="text" id="author" name="author" required placeholder="請輸入作者">
-        </div>
-
-        <div class="form-group">
-          <label for="url">書籍連結</label>
-          <input type="url" id="url" name="url" placeholder="https://example.com">
-        </div>
-
-        <div class="form-group">
-          <label for="cover_url">封面圖片連結</label>
-          <input type="url" id="cover_url" name="cover_url" placeholder="https://example.com/cover.jpg">
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary" id="submitBtn">新增書籍</button>
-          <button type="button" class="btn btn-secondary" id="cancelBtn" style="display: none;">取消</button>
-        </div>
-      </form>
-    </section>
-
-    <section class="books-section">
-      <h2>書籍列表</h2>
-      <div id="booksContainer" class="books-grid">
-        <p class="loading">載入中...</p>
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-number" id="bookCount">0</span>
+        <span class="stat-label">藏書數量</span>
       </div>
-    </section>
+      <div class="stat-item">
+        <span class="stat-number" id="categoryCount">0</span>
+        <span class="stat-label">書籍類型</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="全部">全部</button>
+        <button class="filter-tab" data-filter="小說">小說</button>
+        <button class="filter-tab" data-filter="散文">散文</button>
+        <button class="filter-tab" data-filter="詩集">詩集</button>
+        <button class="filter-tab" data-filter="科技">科技</button>
+        <button class="filter-tab" data-filter="商業">商業</button>
+        <button class="filter-tab" data-filter="自我成長">自我成長</button>
+        <button class="filter-tab" data-filter="歷史">歷史</button>
+        <button class="filter-tab" data-filter="藝術">藝術</button>
+        <button class="filter-tab" data-filter="其他">其他</button>
+      </div>
+      <button class="add-btn" onclick="openModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        新增書籍
+      </button>
+    </div>
+
+    <div class="book-grid" id="booksContainer">
+      <p class="loading">載入中...</p>
+    </div>
+
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+      </svg>
+      <h3>尚無書籍紀錄</h3>
+      <p>點擊「新增書籍」開始建立你的書單</p>
+    </div>
   </div>
+
+  <!-- Add/Edit Modal -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">新增書籍</h2>
+        <button class="close-btn" onclick="closeModal()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="bookForm">
+          <div class="form-group">
+            <label class="form-label">書名 *</label>
+            <input type="text" class="form-input" id="title" name="title" required placeholder="請輸入書名">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">作者 *</label>
+              <input type="text" class="form-input" id="author" name="author" required placeholder="請輸入作者">
+            </div>
+            <div class="form-group">
+              <label class="form-label">類別</label>
+              <select class="form-input" id="category" name="category">
+                <option value="小說">小說</option>
+                <option value="散文">散文</option>
+                <option value="詩集">詩集</option>
+                <option value="科技">科技</option>
+                <option value="商業">商業</option>
+                <option value="自我成長">自我成長</option>
+                <option value="歷史">歷史</option>
+                <option value="藝術">藝術</option>
+                <option value="其他" selected>其他</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">書籍連結</label>
+            <input type="url" class="form-input" id="url" name="url" placeholder="https://example.com">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">封面圖片連結</label>
+            <input type="url" class="form-input" id="cover_url" name="cover_url" placeholder="https://example.com/cover.jpg">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelBtn" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" id="submitBtn" onclick="saveBook()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
 
   <script src="app.js"></script>
 </body>

@@ -20,6 +20,7 @@ const initializeDatabase = () => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       author TEXT NOT NULL,
+      category TEXT DEFAULT '其他',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       url TEXT,
       cover_url TEXT
@@ -31,6 +32,12 @@ const initializeDatabase = () => {
       console.error('Error creating table:', err.message);
     } else {
       console.log('Books table ready');
+      // Add category column to existing tables if it doesn't exist
+      db.run('ALTER TABLE books ADD COLUMN category TEXT DEFAULT "其他"', (alterErr) => {
+        if (alterErr && !alterErr.message.includes('duplicate column')) {
+          console.error('Note: Category column may already exist');
+        }
+      });
     }
   });
 };

@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>書架 | 我的閱讀紀錄</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d0d0d;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #242424;
+            --text-primary: #f5f0e8;
+            --text-secondary: #a89f94;
+            --accent: #c9a962;
+            --accent-hover: #dfc07a;
+            --border: #3d3d3d;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Serif TC', serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            position: relative;
+        }
+
+        header::after {
+            content: '';
+            display: block;
+            width: 120px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            margin: 30px auto 0;
+        }
+
+        h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(3rem, 8vw, 5rem);
+            font-weight: 400;
+            letter-spacing: 0.15em;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            margin-bottom: 48px;
+            padding: 24px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-family: 'Noto Serif TC', serif;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .filter-tab:hover,
+        .filter-tab.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
+        }
+
+        .add-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-family: 'Noto Serif TC', serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .add-btn:hover {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .add-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Book Grid */
+        .book-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 32px;
+        }
+
+        .book-card {
+            background: var(--bg-card);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: all 0.4s ease;
+            position: relative;
+        }
+
+        .book-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px var(--shadow);
+            border-color: var(--accent);
+        }
+
+        .book-cover {
+            position: relative;
+            aspect-ratio: 3/4;
+            overflow: hidden;
+            background: var(--bg-secondary);
+        }
+
+        .book-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .book-card:hover .book-cover img {
+            transform: scale(1.05);
+        }
+
+        .book-cover-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .book-cover-placeholder svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .book-type-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            padding: 4px 12px;
+            background: rgba(13, 13, 13, 0.85);
+            color: var(--accent);
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            border-radius: 2px;
+            backdrop-filter: blur(4px);
+        }
+
+        .book-info {
+            padding: 20px;
+        }
+
+        .book-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+
+        .book-author {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            font-style: italic;
+        }
+
+        .book-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .book-price {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .book-link {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: color 0.3s ease;
+        }
+
+        .book-link:hover {
+            color: var(--accent);
+        }
+
+        .book-link svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .book-actions {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .book-card:hover .book-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(13, 13, 13, 0.85);
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(4px);
+        }
+
+        .action-btn:hover {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .action-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 24px;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            font-weight: 400;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            transition: color 0.3s ease;
+        }
+
+        .close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.1em;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-family: 'Noto Serif TC', serif;
+            font-size: 0.95rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .image-upload {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .image-upload:hover {
+            border-color: var(--accent);
+            background: rgba(201, 169, 98, 0.05);
+        }
+
+        .image-upload input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            cursor: pointer;
+        }
+
+        .image-upload svg {
+            width: 48px;
+            height: 48px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .image-upload-text {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .image-preview {
+            max-width: 200px;
+            margin: 16px auto 0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .image-preview img {
+            width: 100%;
+            display: block;
+        }
+
+        .modal-footer {
+            padding: 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            font-family: 'Noto Serif TC', serif;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-primary);
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border: 1px solid var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 80px 24px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 24px;
+            opacity: 0.3;
+        }
+
+        .empty-state h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            font-weight: 400;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 200;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-bar {
+                gap: 24px;
+            }
+
+            .stat-number {
+                font-size: 2rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-tabs {
+                overflow-x: auto;
+                padding-bottom: 8px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .book-grid {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>書架</h1>
+            <p class="subtitle">我的閱讀紀錄</p>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-number" id="totalBooks">0</span>
+                <span class="stat-label">藏書數量</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="totalValue">$0</span>
+                <span class="stat-label">總價值</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="totalTypes">0</span>
+                <span class="stat-label">書籍類型</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">全部</button>
+                <button class="filter-tab" data-filter="文學小說">文學小說</button>
+                <button class="filter-tab" data-filter="商業理財">商業理財</button>
+                <button class="filter-tab" data-filter="人文社科">人文社科</button>
+                <button class="filter-tab" data-filter="藝術設計">藝術設計</button>
+                <button class="filter-tab" data-filter="輕小說">輕小說</button>
+                <button class="filter-tab" data-filter="生活風格">生活風格</button>
+                <button class="filter-tab" data-filter="其他">其他</button>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button class="add-btn" onclick="fetchAllCovers()" style="background: var(--bg-card); border: 1px solid var(--accent);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    抓取封面
+                </button>
+                <button class="add-btn" onclick="openModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    新增書籍
+                </button>
+            </div>
+        </div>
+
+        <div class="book-grid" id="bookGrid">
+            <!-- Books will be rendered here -->
+        </div>
+
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            <h3>尚無書籍紀錄</h3>
+            <p>點擊「新增書籍」開始建立你的書單</p>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">新增書籍</h2>
+                <button class="close-btn" onclick="closeModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="bookForm">
+                    <input type="hidden" id="bookId">
+                    
+                    <div class="form-group">
+                        <label class="form-label">書籍封面</label>
+                        <div class="image-upload" id="imageUpload">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                            <p class="image-upload-text">點擊或拖曳圖片至此處</p>
+                            <input type="file" id="coverInput" accept="image/*" onchange="handleImageUpload(event)">
+                        </div>
+                        <div class="image-preview" id="imagePreview" style="display: none;">
+                            <img id="previewImg" src="" alt="Preview">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">書名 *</label>
+                        <input type="text" class="form-input" id="bookTitle" placeholder="請輸入書名" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">作者 *</label>
+                            <input type="text" class="form-input" id="bookAuthor" placeholder="請輸入作者">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">類型 *</label>
+                            <select class="form-input" id="bookType">
+                                <option value="文學小說">文學小說</option>
+                                <option value="商業理財">商業理財</option>
+                                <option value="人文社科">人文社科</option>
+                                <option value="藝術設計">藝術設計</option>
+                                <option value="輕小說">輕小說</option>
+                                <option value="生活風格">生活風格</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">售價</label>
+                        <input type="number" class="form-input" id="bookPrice" placeholder="例：450">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">購買連結（誠品）</label>
+                        <input type="url" class="form-input" id="bookLink" placeholder="https://www.eslite.com/...">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveBook()">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Book data storage - 預設書籍資料（已內嵌誠品封面URL）
+        const defaultBooks = [
+            {
+                id: '1',
+                title: '三體',
+                author: '劉慈欣',
+                type: '文學小說',
+                price: 380,
+                link: 'https://www.eslite.com/product/1001120162011968',
+                cover: 'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/upload/product/o/2680560621006/ec445323.jpg',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            },
+            {
+                id: '2',
+                title: '破壞性創新！100個創意商業模式',
+                author: '詹姆斯‧畢德威爾',
+                type: '商業理財',
+                price: 420,
+                link: 'https://www.eslite.com/product/1002149862759974',
+                cover: 'https://s2.eslite.com/unsafe/fit-in/x256/filters:format(webp)/s.eslite.com/upload/product/o/2681751740001/ec1750670.jpg',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            },
+            {
+                id: '3',
+                title: '我的妹妹哪有這麼可愛！(13) 綾瀨if 上',
+                author: '伏見つかさ',
+                type: '輕小說',
+                price: 250,
+                link: 'https://www.eslite.com/product/1001125122861236',
+                cover: 'https://s.eslite.com/upload/product/o/2680861236000/20200811113729591010.jpg',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            },
+            {
+                id: '4',
+                title: '我的妹妹哪有這麼可愛！(14) 綾瀨if 下',
+                author: '伏見つかさ',
+                type: '輕小說',
+                price: 250,
+                link: 'https://www.eslite.com/product/1001125122681994201000',
+                cover: 'https://s.eslite.com/upload/product/o/2681994201000/20210410064415875732.jpg',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            },
+            {
+                id: '5',
+                title: '高盛首席分析師教你看懂進場的訊號',
+                author: '彼得．C．奧本海默',
+                type: '商業理財',
+                price: 450,
+                link: 'https://www.eslite.com/product/1001118562682025877003',
+                cover: 'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/upload/product/o/2682025877003/20211123060657751379.jpg',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            },
+            {
+                id: '6',
+                title: '我們真的有自由意志嗎？',
+                author: '葛詹尼加',
+                type: '人文社科',
+                price: 450,
+                link: 'https://www.eslite.com/product/1001120162682035302007',
+                cover: 'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/upload/product/o/2682035302007/20210626071404449418.jpg',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            },
+            {
+                id: '7',
+                title: '情報致富的EXCEL統計學',
+                author: '涌井良幸、涌井貞美',
+                type: '商業理財',
+                price: 380,
+                link: 'https://www.eslite.com/product/1001183572682040128005',
+                cover: 'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/upload/product/o/2682040128005/20210702032953941950.jpg',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            },
+            {
+                id: '8',
+                title: '貨幣簡史：你不能不知道的通膨真相',
+                author: '羅斯巴德',
+                type: '商業理財',
+                price: 320,
+                link: 'https://www.eslite.com/product/1001126122682089129001',
+                cover: 'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/upload/product/o/2682089129001/20211027034104651471.jpg',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            },
+            {
+                id: '9',
+                title: '午夜遊樂園',
+                author: '吉迪恩．史德勒',
+                type: '藝術設計',
+                price: 380,
+                link: 'https://www.eslite.com/product/1001116172682109624004',
+                cover: 'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/upload/product/o/2682109624004/20211223054249182890.jpg',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            },
+            {
+                id: '10',
+                title: '我的妹妹哪有這麼可愛！(15) 黑貓if 上',
+                author: '伏見つかさ',
+                type: '輕小說',
+                price: 250,
+                link: 'https://www.eslite.com/product/1001125122682100484003',
+                cover: 'https://s.eslite.com/upload/product/o/2682100484003/20211204022608892114.jpg',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }
+        ];
+        
+        // 如果 localStorage 沒有資料，使用預設書籍
+        let books = JSON.parse(localStorage.getItem('myBooks')) || defaultBooks;
+        // 如果是第一次載入（沒有存過資料），儲存預設書籍
+        if (!localStorage.getItem('myBooks')) {
+            localStorage.setItem('myBooks', JSON.stringify(defaultBooks));
+        }
+        let editingId = null;
+        let currentCover = '';
+
+        // Google Books API 抓取封面
+        async function fetchBookCover(title, author) {
+            try {
+                const query = encodeURIComponent(`${title} ${author}`);
+                const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`);
+                const data = await response.json();
+                
+                if (data.items && data.items[0]?.volumeInfo?.imageLinks?.thumbnail) {
+                    // 將 http 改為 https 並取得較大的圖片
+                    let imageUrl = data.items[0].volumeInfo.imageLinks.thumbnail;
+                    imageUrl = imageUrl.replace('http://', 'https://');
+                    imageUrl = imageUrl.replace('zoom=1', 'zoom=2'); // 取得較大的圖片
+                    return imageUrl;
+                }
+                return null;
+            } catch (error) {
+                console.log('無法取得封面:', title, error);
+                return null;
+            }
+        }
+
+        // 自動為沒有封面的書籍抓取封面
+        async function fetchMissingCovers() {
+            let updated = false;
+            for (let book of books) {
+                if (!book.cover) {
+                    const cover = await fetchBookCover(book.title, book.author);
+                    if (cover) {
+                        book.cover = cover;
+                        updated = true;
+                    }
+                }
+            }
+            if (updated) {
+                localStorage.setItem('myBooks', JSON.stringify(books));
+                renderBooks();
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderBooks();
+            updateStats();
+            setupFilterTabs();
+            // 自動抓取缺少的封面
+            fetchMissingCovers();
+        });
+
+        // Render books
+        function renderBooks(filter = 'all') {
+            const grid = document.getElementById('bookGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            let filteredBooks = filter === 'all' 
+                ? books 
+                : books.filter(book => book.type === filter);
+
+            if (books.length === 0) {
+                grid.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            grid.style.display = 'grid';
+            emptyState.style.display = 'none';
+
+            grid.innerHTML = filteredBooks.map(book => `
+                <div class="book-card" data-id="${book.id}">
+                    <div class="book-cover">
+                        ${book.cover 
+                            ? `<img src="${book.cover}" alt="${book.title}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                               <div class="book-cover-placeholder" style="display:none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                </svg>
+                                <span>${book.title}</span>
+                               </div>`
+                            : `<div class="book-cover-placeholder">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                </svg>
+                                <span>${book.title}</span>
+                               </div>`
+                        }
+                        <span class="book-type-badge">${book.type}</span>
+                        <div class="book-actions">
+                            <button class="action-btn" onclick="fetchCoverForBook('${book.id}')" title="抓取封面">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                            </button>
+                            <button class="action-btn" onclick="editBook('${book.id}')" title="編輯">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                            </button>
+                            <button class="action-btn" onclick="deleteBook('${book.id}')" title="刪除">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="book-info">
+                        <h3 class="book-title">${book.title}</h3>
+                        <p class="book-author">${book.author || '未知作者'}</p>
+                        <div class="book-meta">
+                            <span class="book-price">${book.price ? `NT$ ${book.price.toLocaleString()}` : '-'}</span>
+                            ${book.link 
+                                ? `<a href="${book.link}" target="_blank" class="book-link">
+                                    誠品連結
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                   </a>`
+                                : ''
+                            }
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('totalBooks').textContent = books.length;
+            
+            const totalValue = books.reduce((sum, book) => sum + (book.price || 0), 0);
+            document.getElementById('totalValue').textContent = `$${totalValue.toLocaleString()}`;
+            
+            const types = new Set(books.map(book => book.type));
+            document.getElementById('totalTypes').textContent = types.size;
+        }
+
+        // Filter tabs
+        function setupFilterTabs() {
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    renderBooks(tab.dataset.filter);
+                });
+            });
+        }
+
+        // Modal functions
+        function openModal(id = null) {
+            editingId = id;
+            currentCover = '';
+            
+            if (id) {
+                const book = books.find(b => b.id === id);
+                if (book) {
+                    document.getElementById('modalTitle').textContent = '編輯書籍';
+                    document.getElementById('bookId').value = book.id;
+                    document.getElementById('bookTitle').value = book.title;
+                    document.getElementById('bookAuthor').value = book.author || '';
+                    document.getElementById('bookType').value = book.type;
+                    document.getElementById('bookPrice').value = book.price || '';
+                    document.getElementById('bookLink').value = book.link || '';
+                    
+                    if (book.cover) {
+                        currentCover = book.cover;
+                        document.getElementById('previewImg').src = book.cover;
+                        document.getElementById('imagePreview').style.display = 'block';
+                    }
+                }
+            } else {
+                document.getElementById('modalTitle').textContent = '新增書籍';
+                document.getElementById('bookForm').reset();
+                document.getElementById('imagePreview').style.display = 'none';
+            }
+            
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.getElementById('bookForm').reset();
+            document.getElementById('imagePreview').style.display = 'none';
+            editingId = null;
+            currentCover = '';
+        }
+
+        // Image upload
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    currentCover = e.target.result;
+                    document.getElementById('previewImg').src = currentCover;
+                    document.getElementById('imagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Save book
+        function saveBook() {
+            const title = document.getElementById('bookTitle').value.trim();
+            const author = document.getElementById('bookAuthor').value.trim();
+            const type = document.getElementById('bookType').value;
+            const price = parseInt(document.getElementById('bookPrice').value) || 0;
+            const link = document.getElementById('bookLink').value.trim();
+
+            if (!title) {
+                showToast('請輸入書名');
+                return;
+            }
+
+            const bookData = {
+                id: editingId || Date.now().toString(),
+                title,
+                author,
+                type,
+                price,
+                link,
+                cover: currentCover,
+                createdAt: editingId ? books.find(b => b.id === editingId)?.createdAt : new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            if (editingId) {
+                const index = books.findIndex(b => b.id === editingId);
+                if (index !== -1) {
+                    books[index] = bookData;
+                }
+            } else {
+                books.unshift(bookData);
+            }
+
+            saveToStorage();
+            renderBooks();
+            updateStats();
+            closeModal();
+            showToast(editingId ? '書籍已更新' : '書籍已新增');
+        }
+
+        // Edit book
+        function editBook(id) {
+            openModal(id);
+        }
+
+        // Delete book
+        function deleteBook(id) {
+            if (confirm('確定要刪除這本書嗎？')) {
+                books = books.filter(b => b.id !== id);
+                saveToStorage();
+                renderBooks();
+                updateStats();
+                showToast('書籍已刪除');
+            }
+        }
+
+        // Fetch cover for a specific book
+        async function fetchCoverForBook(id) {
+            const book = books.find(b => b.id === id);
+            if (!book) return;
+            
+            showToast('正在搜尋封面...');
+            const cover = await fetchBookCover(book.title, book.author);
+            
+            if (cover) {
+                book.cover = cover;
+                saveToStorage();
+                renderBooks();
+                showToast('封面已更新！');
+            } else {
+                showToast('找不到封面圖片');
+            }
+        }
+
+        // Fetch all missing covers
+        async function fetchAllCovers() {
+            const booksWithoutCovers = books.filter(b => !b.cover);
+            if (booksWithoutCovers.length === 0) {
+                showToast('所有書籍都已有封面！');
+                return;
+            }
+            
+            showToast(`正在抓取 ${booksWithoutCovers.length} 本書的封面...`);
+            let successCount = 0;
+            
+            for (let book of booksWithoutCovers) {
+                const cover = await fetchBookCover(book.title, book.author);
+                if (cover) {
+                    book.cover = cover;
+                    successCount++;
+                }
+                // 稍微延遲避免 API 限制
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            saveToStorage();
+            renderBooks();
+            showToast(`已成功抓取 ${successCount} 本書的封面！`);
+        }
+
+        // Storage
+        function saveToStorage() {
+            localStorage.setItem('myBooks', JSON.stringify(books));
+        }
+
+        // Toast notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Export data (for backup)
+        function exportData() {
+            const dataStr = JSON.stringify(books, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `booklist-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Import data
+        function importData(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedBooks = JSON.parse(e.target.result);
+                        books = [...importedBooks, ...books];
+                        saveToStorage();
+                        renderBooks();
+                        updateStats();
+                        showToast('資料匯入成功');
+                    } catch (error) {
+                        showToast('匯入失敗，請確認檔案格式');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Reset to default books
+        function resetToDefault() {
+            if (confirm('確定要重置為預設書籍嗎？這將清除所有目前的書籍資料。')) {
+                localStorage.removeItem('myBooks');
+                books = [...defaultBooks];
+                localStorage.setItem('myBooks', JSON.stringify(books));
+                renderBooks();
+                updateStats();
+                showToast('已重置為預設書籍');
+                // 自動抓取封面
+                fetchMissingCovers();
+            }
+        }
+    </script>
+</body>
+</html>

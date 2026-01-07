@@ -4,17 +4,22 @@ const API_URL = 'http://localhost:3000/api/books';
 const bookForm = document.getElementById('bookForm');
 const booksContainer = document.getElementById('booksContainer');
 const bookCountElement = document.getElementById('bookCount');
+const categoryCountElement = document.getElementById('categoryCount');
 const submitBtn = document.getElementById('submitBtn');
 const cancelBtn = document.getElementById('cancelBtn');
+const emptyState = document.getElementById('emptyState');
+const modalOverlay = document.getElementById('modalOverlay');
+const modalTitle = document.getElementById('modalTitle');
 
 // State
 let editingBookId = null;
+let allBooks = [];
+let currentFilter = '全部';
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadBooks();
-  bookForm.addEventListener('submit', handleSubmit);
-  cancelBtn.addEventListener('click', cancelEdit);
+  setupFilterTabs();
 });
 
 // Load all books
@@ -24,67 +29,168 @@ async function loadBooks() {
     if (!response.ok) throw new Error('Failed to fetch books');
 
     const data = await response.json();
-    const books = data.books || [];
+    allBooks = data.books || [];
 
-    displayBooks(books);
-    updateBookCount(books.length);
+    filterBooks(currentFilter);
+    updateStats();
   } catch (error) {
     console.error('Error loading books:', error);
-    booksContainer.innerHTML = '<p class="error">❌ 無法載入書籍，請確認後端伺服器已啟動</p>';
+    booksContainer.innerHTML = '<p class="loading">❌ 無法載入書籍，請確認後端伺服器已啟動</p>';
   }
+}
+
+// Filter books by category
+function filterBooks(category) {
+  currentFilter = category;
+  let filteredBooks = category === '全部'
+    ? allBooks
+    : allBooks.filter(book => book.category === category);
+
+  displayBooks(filteredBooks);
+}
+
+// Setup filter tabs
+function setupFilterTabs() {
+  document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      filterBooks(tab.dataset.filter);
+    });
+  });
 }
 
 // Display books in grid
 function displayBooks(books) {
   if (books.length === 0) {
-    booksContainer.innerHTML = '<p class="empty">📭 目前沒有任何書籍，開始新增第一本書吧！</p>';
+    booksContainer.style.display = 'none';
+    emptyState.style.display = 'block';
     return;
   }
 
+  booksContainer.style.display = 'grid';
+  emptyState.style.display = 'none';
+
   booksContainer.innerHTML = books.map(book => `
     <div class="book-card" data-id="${book.id}">
-      ${book.cover_url ? `<img src="${book.cover_url}" alt="${book.title}" class="book-cover">` : '<div class="book-cover"></div>'}
+      <div class="book-cover">
+        ${book.cover_url
+          ? `<img src="${book.cover_url}" alt="${escapeHtml(book.title)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+             <div class="book-cover-placeholder" style="display:none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+              <span>${escapeHtml(book.title)}</span>
+             </div>`
+          : `<div class="book-cover-placeholder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+              <span>${escapeHtml(book.title)}</span>
+             </div>`
+        }
+        <span class="book-type-badge">${escapeHtml(book.category || '其他')}</span>
+        <div class="book-actions">
+          <button class="action-btn" onclick="editBook(${book.id})" title="編輯">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+          <button class="action-btn" onclick="deleteBook(${book.id})" title="刪除">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
       <div class="book-info">
         <h3 class="book-title">${escapeHtml(book.title)}</h3>
-        <p class="book-author">👤 ${escapeHtml(book.author)}</p>
+        <p class="book-author">${escapeHtml(book.author || '未知作者')}</p>
+        <p class="book-category">📂 ${escapeHtml(book.category || '其他')}</p>
         <p class="book-date">📅 ${formatDate(book.created_at)}</p>
-        ${book.url ? `<a href="${book.url}" class="book-link" target="_blank">🔗 查看書籍連結</a>` : ''}
-      </div>
-      <div class="book-actions">
-        <button class="btn btn-edit" onclick="editBook(${book.id})">編輯</button>
-        <button class="btn btn-delete" onclick="deleteBook(${book.id})">刪除</button>
+        <div class="book-meta">
+          ${book.url
+            ? `<a href="${book.url}" target="_blank" class="book-link">
+                查看連結
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+               </a>`
+            : '<span></span>'
+          }
+        </div>
       </div>
     </div>
   `).join('');
 }
 
-// Update book count
-function updateBookCount(count) {
-  bookCountElement.textContent = count;
+// Update statistics
+function updateStats() {
+  bookCountElement.textContent = allBooks.length;
+
+  const categories = new Set(allBooks.map(book => book.category || '其他'));
+  categoryCountElement.textContent = categories.size;
 }
 
-// Handle form submit (Create or Update)
-async function handleSubmit(e) {
-  e.preventDefault();
+// Modal functions
+function openModal(id = null) {
+  editingBookId = id;
 
-  const formData = {
-    title: document.getElementById('title').value.trim(),
-    author: document.getElementById('author').value.trim(),
-    url: document.getElementById('url').value.trim() || null,
-    cover_url: document.getElementById('cover_url').value.trim() || null
-  };
+  if (id) {
+    const book = allBooks.find(b => b.id === parseInt(id));
+    if (book) {
+      modalTitle.textContent = '編輯書籍';
+      document.getElementById('title').value = book.title;
+      document.getElementById('author').value = book.author || '';
+      document.getElementById('category').value = book.category || '其他';
+      document.getElementById('url').value = book.url || '';
+      document.getElementById('cover_url').value = book.cover_url || '';
+    }
+  } else {
+    modalTitle.textContent = '新增書籍';
+    bookForm.reset();
+  }
+
+  modalOverlay.classList.add('active');
+}
+
+function closeModal(event) {
+  if (event && event.target !== event.currentTarget && !event.target.classList.contains('close-btn')) return;
+  modalOverlay.classList.remove('active');
+  bookForm.reset();
+  editingBookId = null;
+}
+
+// Save book
+async function saveBook() {
+  const title = document.getElementById('title').value.trim();
+  const author = document.getElementById('author').value.trim();
+  const category = document.getElementById('category').value;
+  const url = document.getElementById('url').value.trim() || null;
+  const cover_url = document.getElementById('cover_url').value.trim() || null;
+
+  if (!title || !author) {
+    showToast('請輸入書名和作者');
+    return;
+  }
+
+  const formData = { title, author, category, url, cover_url };
 
   try {
     let response;
     if (editingBookId) {
-      // Update existing book
       response = await fetch(`${API_URL}/${editingBookId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
     } else {
-      // Create new book
       response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,13 +203,12 @@ async function handleSubmit(e) {
     const result = await response.json();
     console.log('Book saved:', result);
 
-    // Reset form and reload books
-    bookForm.reset();
-    cancelEdit();
+    closeModal();
     loadBooks();
+    showToast(editingBookId ? '書籍已更新' : '書籍已新增');
   } catch (error) {
     console.error('Error saving book:', error);
-    alert('❌ 儲存失敗，請稍後再試');
+    showToast('❌ 儲存失敗，請稍後再試');
   }
 }
 
@@ -116,31 +221,19 @@ async function editBook(id) {
     const data = await response.json();
     const book = data.book;
 
-    // Populate form
+    editingBookId = id;
+    modalTitle.textContent = '編輯書籍';
     document.getElementById('title').value = book.title;
-    document.getElementById('author').value = book.author;
+    document.getElementById('author').value = book.author || '';
+    document.getElementById('category').value = book.category || '其他';
     document.getElementById('url').value = book.url || '';
     document.getElementById('cover_url').value = book.cover_url || '';
 
-    // Update UI state
-    editingBookId = id;
-    submitBtn.textContent = '更新書籍';
-    cancelBtn.style.display = 'inline-block';
-
-    // Scroll to form
-    document.querySelector('.add-book-section').scrollIntoView({ behavior: 'smooth' });
+    modalOverlay.classList.add('active');
   } catch (error) {
     console.error('Error loading book for edit:', error);
-    alert('❌ 無法載入書籍資料');
+    showToast('❌ 無法載入書籍資料');
   }
-}
-
-// Cancel edit
-function cancelEdit() {
-  editingBookId = null;
-  submitBtn.textContent = '新增書籍';
-  cancelBtn.style.display = 'none';
-  bookForm.reset();
 }
 
 // Delete book
@@ -156,10 +249,21 @@ async function deleteBook(id) {
 
     console.log('Book deleted');
     loadBooks();
+    showToast('書籍已刪除');
   } catch (error) {
     console.error('Error deleting book:', error);
-    alert('❌ 刪除失敗，請稍後再試');
+    showToast('❌ 刪除失敗，請稍後再試');
   }
+}
+
+// Toast notification
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
 }
 
 // Utility: Escape HTML to prevent XSS
