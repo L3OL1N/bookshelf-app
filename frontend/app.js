@@ -15,11 +15,13 @@ const modalTitle = document.getElementById('modalTitle');
 let editingBookId = null;
 let allBooks = [];
 let currentFilter = '全部';
+let selectedImage = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadBooks();
   setupFilterTabs();
+  setupDragAndDrop();
 });
 
 // Load all books
@@ -283,4 +285,204 @@ function formatDate(dateString) {
     hour: '2-digit',
     minute: '2-digit'
   });
+}
+
+// ============= AI Import Functions =============
+
+// Open AI Import Modal
+function openAIImportModal() {
+  const aiImportModal = document.getElementById('aiImportModal');
+  aiImportModal.classList.add('active');
+  resetAIImportModal();
+}
+
+// Close AI Import Modal
+function closeAIImportModal(event) {
+  if (event && event.target !== event.currentTarget && !event.target.classList.contains('close-btn')) return;
+  const aiImportModal = document.getElementById('aiImportModal');
+  aiImportModal.classList.remove('active');
+  resetAIImportModal();
+}
+
+// Reset AI Import Modal
+function resetAIImportModal() {
+  selectedImage = null;
+  document.getElementById('imageInput').value = '';
+  document.getElementById('uploadArea').style.display = 'block';
+  document.getElementById('imagePreviewContainer').style.display = 'none';
+  document.getElementById('aiLoading').style.display = 'none';
+  document.getElementById('importResult').style.display = 'none';
+  document.getElementById('uploadBtn').disabled = true;
+}
+
+// Handle image selection
+function handleImageSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // 檢查檔案大小（5MB）
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('圖片大小不能超過 5MB');
+    return;
+  }
+
+  // 檢查檔案類型
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  if (!allowedTypes.includes(file.type)) {
+    showToast('只支援 JPG, PNG, WEBP, GIF 格式');
+    return;
+  }
+
+  selectedImage = file;
+
+  // 預覽圖片
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('imagePreview').src = e.target.result;
+    document.getElementById('uploadArea').style.display = 'none';
+    document.getElementById('imagePreviewContainer').style.display = 'block';
+    document.getElementById('uploadBtn').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Remove selected image
+function removeImage() {
+  selectedImage = null;
+  document.getElementById('imageInput').value = '';
+  document.getElementById('uploadArea').style.display = 'block';
+  document.getElementById('imagePreviewContainer').style.display = 'none';
+  document.getElementById('uploadBtn').disabled = true;
+}
+
+// Upload image and import books
+async function uploadImage() {
+  if (!selectedImage) {
+    showToast('請先選擇圖片');
+    return;
+  }
+
+  // 隱藏預覽，顯示載入動畫
+  document.getElementById('imagePreviewContainer').style.display = 'none';
+  document.getElementById('aiLoading').style.display = 'block';
+  document.getElementById('uploadBtn').disabled = true;
+
+  try {
+    // 建立 FormData
+    const formData = new FormData();
+    formData.append('image', selectedImage);
+
+    // 上傳到 API
+    const response = await fetch('http://localhost:3000/api/books/import-from-image', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || '上傳失敗');
+    }
+
+    const result = await response.json();
+
+    // 隱藏載入動畫，顯示結果
+    document.getElementById('aiLoading').style.display = 'none';
+    document.getElementById('importResult').style.display = 'block';
+
+    // 顯示結果
+    if (result.imported > 0) {
+      document.getElementById('resultTitle').textContent = '匯入成功！';
+      document.getElementById('resultMessage').textContent = result.message;
+
+      // 顯示匯入的書籍列表
+      const booksList = document.getElementById('importedBooksList');
+      booksList.innerHTML = '<h4 style="margin-bottom: 12px; color: var(--text-secondary);">已匯入的書籍：</h4>';
+
+      result.books.forEach(book => {
+        const bookItem = document.createElement('div');
+        bookItem.className = 'imported-book-item';
+        bookItem.innerHTML = `
+          <h4>${escapeHtml(book.title)}</h4>
+          <p>作者：${escapeHtml(book.author)}</p>
+          ${book.isbn ? `<p style="opacity: 0.7; margin-top: 4px;">ISBN: ${escapeHtml(book.isbn)}</p>` : ''}
+        `;
+        booksList.appendChild(bookItem);
+      });
+
+      // 重新載入書籍列表
+      setTimeout(() => {
+        loadBooks();
+      }, 1000);
+
+      showToast(`成功匯入 ${result.imported} 本書籍！`);
+    } else {
+      document.getElementById('resultTitle').textContent = '未辨識到書籍';
+      document.getElementById('resultMessage').textContent = '圖片中沒有辨識到任何書籍，請嘗試使用更清晰的圖片。';
+      document.getElementById('importedBooksList').innerHTML = '';
+    }
+
+  } catch (error) {
+    console.error('AI 匯入錯誤:', error);
+
+    // 隱藏載入動畫，顯示錯誤
+    document.getElementById('aiLoading').style.display = 'none';
+    document.getElementById('importResult').style.display = 'block';
+
+    document.getElementById('resultTitle').textContent = '匯入失敗';
+    document.getElementById('resultMessage').textContent = error.message || '發生未知錯誤，請稍後再試';
+    document.getElementById('importedBooksList').innerHTML = '';
+
+    showToast('❌ ' + (error.message || '匯入失敗'));
+  }
+}
+
+// Setup drag and drop
+function setupDragAndDrop() {
+  const uploadArea = document.getElementById('uploadArea');
+
+  if (!uploadArea) return;
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  // Prevent default drag behaviors
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, preventDefaults, false);
+  });
+
+  // Highlight drop area when item is dragged over it
+  ['dragenter', 'dragover'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, () => {
+      uploadArea.style.borderColor = 'var(--accent)';
+      uploadArea.style.background = 'rgba(201, 169, 98, 0.1)';
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, () => {
+      uploadArea.style.borderColor = 'var(--border)';
+      uploadArea.style.background = 'var(--bg-card)';
+    }, false);
+  });
+
+  // Handle dropped files
+  uploadArea.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+
+    if (files.length > 0) {
+      const file = files[0];
+      const imageInput = document.getElementById('imageInput');
+
+      // Create a new FileList-like object
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      imageInput.files = dataTransfer.files;
+
+      // Trigger change event
+      handleImageSelect({ target: { files: [file] } });
+    }
+  }, false);
 }

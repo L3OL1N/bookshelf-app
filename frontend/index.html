@@ -40,13 +40,23 @@
         <button class="filter-tab" data-filter="藝術">藝術</button>
         <button class="filter-tab" data-filter="其他">其他</button>
       </div>
-      <button class="add-btn" onclick="openModal()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        新增書籍
-      </button>
+      <div class="action-buttons">
+        <button class="add-btn" onclick="openAIImportModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          AI 匯入
+        </button>
+        <button class="add-btn" onclick="openModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          新增書籍
+        </button>
+      </div>
     </div>
 
     <div class="book-grid" id="booksContainer">
@@ -117,6 +127,71 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="cancelBtn" onclick="closeModal()">取消</button>
         <button class="btn btn-primary" id="submitBtn" onclick="saveBook()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Import Modal -->
+  <div class="modal-overlay" id="aiImportModal" onclick="closeAIImportModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">AI 智慧匯入書籍</h2>
+        <button class="close-btn" onclick="closeAIImportModal()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- 上傳區域 -->
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
+          <div class="upload-content" onclick="document.getElementById('imageInput').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <p class="upload-title">拍攝或上傳書籍圖片</p>
+            <p class="upload-subtitle">支援 JPG, PNG, WEBP, GIF（最大 5MB）</p>
+            <p class="upload-hint">點擊選擇檔案或拖曳至此</p>
+          </div>
+        </div>
+
+        <!-- 圖片預覽 -->
+        <div class="image-preview-container" id="imagePreviewContainer" style="display: none;">
+          <img id="imagePreview" src="" alt="預覽">
+          <button class="remove-image-btn" onclick="removeImage()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 載入中 -->
+        <div class="ai-loading" id="aiLoading" style="display: none;">
+          <div class="spinner"></div>
+          <p class="loading-text">AI 正在辨識圖片中的書籍...</p>
+          <p class="loading-subtext">這可能需要幾秒鐘時間</p>
+        </div>
+
+        <!-- 結果顯示 -->
+        <div class="import-result" id="importResult" style="display: none;">
+          <div class="result-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <h3 id="resultTitle">匯入成功！</h3>
+          </div>
+          <p id="resultMessage"></p>
+          <div id="importedBooksList"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeAIImportModal()">關閉</button>
+        <button class="btn btn-primary" id="uploadBtn" onclick="uploadImage()" disabled>開始辨識</button>
       </div>
     </div>
   </div>
