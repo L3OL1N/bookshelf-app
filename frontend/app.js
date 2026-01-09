@@ -404,7 +404,7 @@ async function uploadImage() {
         bookItem.innerHTML = `
           <h4>${escapeHtml(book.title)}</h4>
           <p>作者：${escapeHtml(book.author)}</p>
-          ${book.isbn ? `<p style="opacity: 0.7; margin-top: 4px;">ISBN: ${escapeHtml(book.isbn)}</p>` : ''}
+          ${book.link ? `<p style="opacity: 0.7; margin-top: 4px;"><a href="${escapeHtml(book.link)}" target="_blank" style="color: var(--accent); text-decoration: none;">📚 查看購買連結</a></p>` : ''}
         `;
         booksList.appendChild(bookItem);
       });

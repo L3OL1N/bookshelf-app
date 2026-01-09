@@ -10,12 +10,6 @@ import db from '../database.js';
 const router = express.Router();
 dotenv.config()
 
-// 測試用，確認有載入
-console.log('=== 環境變數檢查 ===');
-console.log('API Key 存在:', !!process.env.ANTHROPIC_API_KEY);
-console.log('API Key 前綴:', process.env.ANTHROPIC_API_KEY?.substring(0, 15));
-console.log('===================');
-
 // 取得當前檔案路徑
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,7 +70,13 @@ router.post('/import-from-image', upload.single('image'), async (req, res) => {
     // 4. 呼叫 Claude API 分析圖片
     const message = await anthropic.messages.create({
       model: 'claude-opus-4-5-20251101',
-      max_tokens: 2048,
+      max_tokens: 4096,
+      tools: [
+        {
+          type: "web_search_20250305",
+          name: "web_search"
+        }
+      ],
       messages: [
         {
           role: 'user',
@@ -91,26 +91,31 @@ router.post('/import-from-image', upload.single('image'), async (req, res) => {
             },
             {
               type: 'text',
-              text: `請仔細分析這張圖片中的所有書籍。
+              text: `請分析這張購書清單圖片,辨識所有書籍並搜尋相關資訊.
 
-辨識要求：
-1. 找出圖片中所有可見的書籍
-2. 盡可能辨識書名、作者和 ISBN（如果可見）
-3. 如果書名或作者模糊不清，請根據可見文字做最合理的推測
-4. 如果無法確定某些資訊，該欄位可以留空
+                      任務步驟：
+                      1. 辨識圖片中所有書籍的書名
+                      2. 忽略被劃掉或標記刪除的書籍
+                      3. 對每本書使用 web_search 工具搜尋,找出：
+                        - 正確的繁體中文書名
+                        - 作者全名
+                        - 以誠品為主,或博客來的購買連結
+                    
+                      請以 JSON 格式回傳：
+                      {
+                        "books": [
+                          {
+                            "title": "完整書名",
+                            "author": "作者",
+                            "link": "購買連結（優先誠品）"
+                          }
+                        ]
+                      }
 
-請以 JSON 格式回傳書籍清單，格式如下：
-{
-  "books": [
-    {
-      "title": "書名",
-      "author": "作者",
-      "isbn": "ISBN碼（如果可見）"
-    }
-  ]
-}
-
-重要：只回傳 JSON，不要有其他說明文字。`,
+                      重要：
+                      - 只回傳 JSON,不要有其他文字
+                      - 確保搜尋每本書以獲得準確資訊
+                      - 如果找不到連結可以留空字串`,
             },
           ],
         },
@@ -118,8 +123,25 @@ router.post('/import-from-image', upload.single('image'), async (req, res) => {
     });
 
     // 5. 解析 Claude 的回應
-    const responseText = message.content[0].text;
-    console.log('Claude API 回應:', responseText);
+    console.log('Claude API 完整回應:', JSON.stringify(message, null, 2));
+
+    // 找出所有文字類型的 content
+    let responseText = '';
+    for (const content of message.content) {
+      if (content.type === 'text') {
+        responseText += content.text;
+      }
+    }
+
+    console.log('Claude API 回應文字:', responseText);
+
+    if (!responseText) {
+      console.error('Claude API 沒有返回文字回應');
+      return res.status(500).json({
+        error: 'AI 辨識失敗',
+        details: 'Claude API 沒有返回有效的文字回應'
+      });
+    }
 
     // 嘗試從回應中提取 JSON
     let booksData;
@@ -170,7 +192,7 @@ router.post('/import-from-image', upload.single('image'), async (req, res) => {
               book.title,
               book.author,
               '其他', // 預設類別
-              book.isbn ? `https://www.google.com/search?q=isbn+${book.isbn}` : null,
+              book.link || null, // 使用 link 欄位（博客來或其他購買連結）
               null
             ],
             function (err) {
@@ -186,7 +208,7 @@ router.post('/import-from-image', upload.single('image'), async (req, res) => {
           );
         }).then((result) => {
           importedBooks.push(result);
-          console.log(`成功匯入: ${book.title}`);
+          console.log(`成功匯入: ${book.title} - ${book.link || '無連結'}`);
         });
       } catch (err) {
         console.error(`匯入失敗 (${book.title}):`, err);
