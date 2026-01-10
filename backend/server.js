@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import booksRouter from './routes/books.js';
 import imageImportRouter from './routes/imageImport.js';
+import coverFetchRouter from './routes/coverFetch.js';
 
 const app = express();
 const PORT = 3000;
@@ -14,6 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/books', booksRouter);
 app.use('/api/books', imageImportRouter);
+app.use('/api/books', coverFetchRouter);
 
 // Root endpoint
 app.get('/', (req, res) => {

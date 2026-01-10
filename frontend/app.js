@@ -78,19 +78,21 @@ function displayBooks(books) {
       <div class="book-cover">
         ${book.cover_url
           ? `<img src="${book.cover_url}" alt="${escapeHtml(book.title)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-             <div class="book-cover-placeholder" style="display:none;">
+             <div class="book-cover-placeholder book-cover-error" style="display:none;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
               </svg>
               <span>${escapeHtml(book.title)}</span>
+              ${book.url ? `<button class="retry-cover-btn" onclick="fetchSingleCover(${book.id})">🔄 重試</button>` : ''}
              </div>`
-          : `<div class="book-cover-placeholder">
+          : `<div class="book-cover-placeholder book-cover-no-image">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
               </svg>
               <span>${escapeHtml(book.title)}</span>
+              ${book.url ? `<button class="retry-cover-btn" onclick="fetchSingleCover(${book.id})">📷 抓取封面</button>` : ''}
              </div>`
         }
         <span class="book-type-badge">${escapeHtml(book.category || '其他')}</span>
@@ -392,7 +394,7 @@ async function uploadImage() {
     // 顯示結果
     if (result.imported > 0) {
       document.getElementById('resultTitle').textContent = '匯入成功！';
-      document.getElementById('resultMessage').textContent = result.message;
+      document.getElementById('resultMessage').textContent = `${result.message}，正在抓取封面...`;
 
       // 顯示匯入的書籍列表
       const booksList = document.getElementById('importedBooksList');
@@ -409,12 +411,11 @@ async function uploadImage() {
         booksList.appendChild(bookItem);
       });
 
-      // 重新載入書籍列表
-      setTimeout(() => {
-        loadBooks();
-      }, 1000);
-
       showToast(`成功匯入 ${result.imported} 本書籍！`);
+
+      // 自動批次抓取封面
+      const bookIds = result.books.map(book => book.id);
+      await batchFetchCovers(bookIds, booksList);
     } else {
       document.getElementById('resultTitle').textContent = '未辨識到書籍';
       document.getElementById('resultMessage').textContent = '圖片中沒有辨識到任何書籍，請嘗試使用更清晰的圖片。';
@@ -485,4 +486,92 @@ function setupDragAndDrop() {
       handleImageSelect({ target: { files: [file] } });
     }
   }, false);
+}
+
+// ============= Cover Fetch Functions =============
+
+/**
+ * 批次抓取封面
+ */
+async function batchFetchCovers(bookIds, progressContainer = null) {
+  try {
+    if (progressContainer) {
+      const progressDiv = document.createElement('div');
+      progressDiv.id = 'coverFetchProgress';
+      progressDiv.style.cssText = 'margin-top: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 4px;';
+      progressDiv.innerHTML = `
+        <p style="color: var(--text-secondary); margin-bottom: 8px;">正在抓取封面圖片...</p>
+        <div class="progress-bar">
+          <div class="progress-fill" id="coverProgress" style="width: 0%"></div>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px;" id="coverProgressText">0/${bookIds.length} 已完成</p>
+      `;
+      progressContainer.appendChild(progressDiv);
+    }
+
+    const response = await fetch('http://localhost:3000/api/books/batch-fetch-covers', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ bookIds }),
+    });
+
+    if (!response.ok) {
+      throw new Error('批次抓取封面失敗');
+    }
+
+    const result = await response.json();
+
+    if (progressContainer) {
+      const progressDiv = document.getElementById('coverFetchProgress');
+      if (progressDiv) {
+        progressDiv.innerHTML = `
+          <p style="color: var(--accent);">✓ 封面抓取完成！</p>
+          <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
+            成功 ${result.success} 本，失敗 ${result.failed} 本
+          </p>
+        `;
+      }
+    }
+
+    showToast(`封面抓取完成：成功 ${result.success} 本`);
+
+    // 重新載入書籍列表
+    setTimeout(() => {
+      loadBooks();
+    }, 1000);
+
+  } catch (error) {
+    console.error('批次抓取封面錯誤:', error);
+    showToast('封面抓取失敗：' + error.message);
+  }
+}
+
+/**
+ * 單一書籍抓取封面
+ */
+async function fetchSingleCover(bookId) {
+  try {
+    const response = await fetch(`http://localhost:3000/api/books/${bookId}/fetch-cover`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      throw new Error('抓取封面失敗');
+    }
+
+    const result = await response.json();
+
+    if (result.success) {
+      showToast(`封面抓取成功：${result.book.title}`);
+      loadBooks(); // 重新載入書籍列表
+    } else {
+      showToast(`封面抓取失敗：${result.message}`);
+    }
+
+  } catch (error) {
+    console.error('抓取封面錯誤:', error);
+    showToast('封面抓取失敗：' + error.message);
+  }
 }
