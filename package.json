@@ -1,0 +1,25 @@
+{
+  "name": "bookshelf-app",
+  "version": "1.0.0",
+  "description": "書架應用程式 - 管理你的閱讀書單",
+  "type": "module",
+  "scripts": {
+    "build": "node build.js dist",
+    "build:public": "node build.js public",
+    "start": "npm run build:public && cd backend && node server.js",
+    "start:backend": "cd backend && node server.js",
+    "start:frontend": "cd frontend && python -m http.server 8080 || npx http-server -p 8080",
+    "start:api-only": "cd backend && SERVE_FRONTEND=false node server.js",
+    "dev": "concurrently \"npm run start:backend\" \"npm run start:frontend\""
+  },
+  "keywords": [
+    "bookshelf",
+    "reading",
+    "books"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

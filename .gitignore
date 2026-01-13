@@ -1,3 +1,28 @@
+# 環境變數
 .env
-.gitignore
-*.gitignore
+
+# 依賴套件
+node_modules/
+backend/node_modules/
+
+# 打包輸出
+dist/
+public/
+
+# 資料庫
+*.db
+*.sqlite
+
+# 日誌
+*.log
+npm-debug.log*
+
+# 作業系統
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

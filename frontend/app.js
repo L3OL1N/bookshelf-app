@@ -1,4 +1,5 @@
-const API_URL = 'http://localhost:3000/api/books';
+// 使用 config.js 中的 API 配置
+const API_URL = config.API_ENDPOINTS.books;
 
 // DOM Elements
 const bookForm = document.getElementById('bookForm');
@@ -375,7 +376,7 @@ async function uploadImage() {
     formData.append('image', selectedImage);
 
     // 上傳到 API
-    const response = await fetch('http://localhost:3000/api/books/import-from-image', {
+    const response = await fetch(config.API_ENDPOINTS.importFromImage, {
       method: 'POST',
       body: formData
     });
@@ -509,7 +510,7 @@ async function batchFetchCovers(bookIds, progressContainer = null) {
       progressContainer.appendChild(progressDiv);
     }
 
-    const response = await fetch('http://localhost:3000/api/books/batch-fetch-covers', {
+    const response = await fetch(config.API_ENDPOINTS.batchFetchCovers, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -553,7 +554,7 @@ async function batchFetchCovers(bookIds, progressContainer = null) {
  */
 async function fetchSingleCover(bookId) {
   try {
-    const response = await fetch(`http://localhost:3000/api/books/${bookId}/fetch-cover`, {
+    const response = await fetch(config.API_ENDPOINTS.fetchCover(bookId), {
       method: 'POST',
     });
 
