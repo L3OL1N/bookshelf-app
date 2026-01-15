@@ -99,15 +99,17 @@ router.post('/import-from-image', upload.single('image'), async (req, res) => {
                       3. 對每本書使用 web_search 工具搜尋,找出：
                         - 正確的繁體中文書名
                         - 作者全名
-                        - 以誠品為主,或博客來的購買連結
-                    
+                        - 誠品線上的購買連結
+                        - 博客來(books.com.tw)的購買連結
+
                       請以 JSON 格式回傳：
                       {
                         "books": [
                           {
                             "title": "完整書名",
                             "author": "作者",
-                            "link": "購買連結（優先誠品）"
+                            "url": "誠品購買連結",
+                            "books_url": "博客來購買連結"
                           }
                         ]
                       }
@@ -115,6 +117,8 @@ router.post('/import-from-image', upload.single('image'), async (req, res) => {
                       重要：
                       - 只回傳 JSON,不要有其他文字
                       - 確保搜尋每本書以獲得準確資訊
+                      - url 必須是誠品(eslite.com)的連結
+                      - books_url 必須是博客來(books.com.tw)的連結
                       - 如果找不到連結可以留空字串`,
             },
           ],
@@ -185,15 +189,16 @@ router.post('/import-from-image', upload.single('image'), async (req, res) => {
 
         // 插入資料庫
         await new Promise((resolve, reject) => {
-          const query = 'INSERT INTO books (title, author, category, url, cover_url) VALUES (?, ?, ?, ?, ?)';
+          const query = 'INSERT INTO books (title, author, category, url, cover_url, books_url) VALUES (?, ?, ?, ?, ?, ?)';
           db.run(
             query,
             [
               book.title,
               book.author,
               '其他', // 預設類別
-              book.link || null, // 使用 link 欄位（博客來或其他購買連結）
-              null
+              book.url || null, // 誠品等其他購買連結
+              null, // 封面圖片連結（稍後抓取）
+              book.books_url || null // 博客來連結
             ],
             function (err) {
               if (err) {
@@ -208,7 +213,9 @@ router.post('/import-from-image', upload.single('image'), async (req, res) => {
           );
         }).then((result) => {
           importedBooks.push(result);
-          console.log(`成功匯入: ${book.title} - ${book.link || '無連結'}`);
+          console.log(`成功匯入: ${book.title}`);
+          if (book.url) console.log(`  ├─ 誠品連結: ${book.url}`);
+          if (book.books_url) console.log(`  └─ 博客來連結: ${book.books_url}`);
         });
       } catch (err) {
         console.error(`匯入失敗 (${book.title}):`, err);

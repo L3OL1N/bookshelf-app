@@ -23,7 +23,8 @@ const initializeDatabase = () => {
       category TEXT DEFAULT '其他',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       url TEXT,
-      cover_url TEXT
+      cover_url TEXT,
+      books_url TEXT
     )
   `;
 
@@ -36,6 +37,12 @@ const initializeDatabase = () => {
       db.run('ALTER TABLE books ADD COLUMN category TEXT DEFAULT "其他"', (alterErr) => {
         if (alterErr && !alterErr.message.includes('duplicate column')) {
           console.error('Note: Category column may already exist');
+        }
+      });
+      // Add books_url column to existing tables if it doesn't exist
+      db.run('ALTER TABLE books ADD COLUMN books_url TEXT', (alterErr) => {
+        if (alterErr && !alterErr.message.includes('duplicate column')) {
+          console.error('Note: books_url column may already exist');
         }
       });
     }

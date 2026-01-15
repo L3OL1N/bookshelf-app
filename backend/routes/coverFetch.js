@@ -244,7 +244,7 @@ router.post('/:id/fetch-cover', async (req, res) => {
       return res.status(404).json({ error: '找不到該書籍' });
     }
     // 檢查是否有書籍連結
-    if (!book.url) {
+    if (!book.books_url) {
 
       return res.status(400).json({
         success: false,
@@ -258,8 +258,8 @@ router.post('/:id/fetch-cover', async (req, res) => {
     }
 
     // 2. 使用雙層策略抓取封面（博客來書籍連結 → Google Books API）
-    
-    const fetchResult = await fetchCoverWithFallback(book.url, book.title, book.author);
+
+    const fetchResult = await fetchCoverWithFallback(book.books_url, book.title, book.author);
 
     // 3. 更新資料庫
     if (fetchResult.success) {
@@ -359,7 +359,7 @@ router.post('/batch-fetch-covers', async (req, res) => {
         }
 
         // 檢查是否有書籍連結
-        if (!book.book_url) {
+        if (!book.books_url) {
           results.books.push({
             id: bookId,
             title: book.title,
@@ -373,7 +373,7 @@ router.post('/batch-fetch-covers', async (req, res) => {
         }
 
         // 使用雙層策略抓取封面（博客來書籍連結 → Google Books API）
-        const fetchResult = await fetchCoverWithFallback(book.book_url, book.title, book.author);
+        const fetchResult = await fetchCoverWithFallback(book.books_url, book.title, book.author);
 
         // 更新資料庫
         if (fetchResult.success) {

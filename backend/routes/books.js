@@ -33,15 +33,15 @@ router.get('/:id', (req, res) => {
 
 // POST /api/books - 新增書籍
 router.post('/', (req, res) => {
-  const { title, author, category, url, cover_url } = req.body;
+  const { title, author, category, url, cover_url, books_url } = req.body;
 
   if (!title || !author) {
     return res.status(400).json({ error: 'Title and author are required' });
   }
 
-  const query = 'INSERT INTO books (title, author, category, url, cover_url) VALUES (?, ?, ?, ?, ?)';
+  const query = 'INSERT INTO books (title, author, category, url, cover_url, books_url) VALUES (?, ?, ?, ?, ?, ?)';
 
-  db.run(query, [title, author, category || '其他', url || null, cover_url || null], function(err) {
+  db.run(query, [title, author, category || '其他', url || null, cover_url || null, books_url || null], function(err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -62,15 +62,15 @@ router.post('/', (req, res) => {
 // PUT /api/books/:id - 更新書籍
 router.put('/:id', (req, res) => {
   const { id } = req.params;
-  const { title, author, category, url, cover_url } = req.body;
+  const { title, author, category, url, cover_url, books_url } = req.body;
 
   if (!title || !author) {
     return res.status(400).json({ error: 'Title and author are required' });
   }
 
-  const query = 'UPDATE books SET title = ?, author = ?, category = ?, url = ?, cover_url = ? WHERE id = ?';
+  const query = 'UPDATE books SET title = ?, author = ?, category = ?, url = ?, cover_url = ?, books_url = ? WHERE id = ?';
 
-  db.run(query, [title, author, category || '其他', url || null, cover_url || null, id], function(err) {
+  db.run(query, [title, author, category || '其他', url || null, cover_url || null, books_url || null, id], function(err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
