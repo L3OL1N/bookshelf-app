@@ -31,19 +31,30 @@ if (SERVE_FRONTEND) {
   const publicPath = path.join(__dirname, '../public');
 
   // 靜態檔案服務
+  // 提供 CSS, JS, images 等靜態資源
   app.use(express.static(publicPath));
 
-  // SPA 支援 - 所有非 API 路由都返回 index.html
-  app.get('*', (req, res, next) => {
-    // 如果是 API 路由，跳過
+  // SPA Fallback Handler - 使用 middleware 而非路由
+  // 這個必須放在所有路由的最後
+  // 處理所有未被前面路由匹配的請求
+  app.use((req, res, next) => {
+    // 只處理 GET 請求
+    if (req.method !== 'GET') {
+      return next();
+    }
+
+    // 跳過 API 路由（讓 Express 繼續往下找對應的 API 處理器）
     if (req.path.startsWith('/api')) {
       return next();
     }
 
-    // 返回 index.html
-    res.sendFile(path.join(publicPath, 'index.html'), (err) => {
+    // 對於所有其他 GET 請求，返回 index.html
+    // 這讓 SPA 的前端路由器可以處理路由
+    const indexPath = path.join(publicPath, 'index.html');
+    res.sendFile(indexPath, (err) => {
       if (err) {
-        // 如果找不到 index.html，返回提示訊息
+        // 如果找不到 index.html，返回友善的錯誤訊息
+        console.error('Failed to send index.html:', err);
         res.status(404).json({
           error: 'Frontend files not found',
           message: 'Please run "npm run build:public" to build frontend files'
@@ -65,12 +76,17 @@ if (SERVE_FRONTEND) {
       }
     });
   });
-
-  // 404 handler for API-only mode
-  app.use((_req, res) => {
-    res.status(404).json({ error: 'Route not found' });
-  });
 }
+
+// 404 Handler - 處理所有未被匹配的請求
+// 這個必須放在所有路由和 middleware 之後
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not found',
+    path: req.path,
+    method: req.method
+  });
+});
 
 // Error handler
 app.use((err, req, res, next) => {
