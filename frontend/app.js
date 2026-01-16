@@ -155,6 +155,7 @@ function openModal(id = null) {
       document.getElementById('author').value = book.author || '';
       document.getElementById('category').value = book.category || '其他';
       document.getElementById('url').value = book.url || '';
+      document.getElementById('books_url').value = book.books_url || '';
       document.getElementById('cover_url').value = book.cover_url || '';
     }
   } else {
@@ -178,6 +179,7 @@ async function saveBook() {
   const author = document.getElementById('author').value.trim();
   const category = document.getElementById('category').value;
   const url = document.getElementById('url').value.trim() || null;
+  const books_url = document.getElementById('books_url').value.trim() || null;
   const cover_url = document.getElementById('cover_url').value.trim() || null;
 
   if (!title || !author) {
@@ -185,7 +187,7 @@ async function saveBook() {
     return;
   }
 
-  const formData = { title, author, category, url, cover_url };
+  const formData = { title, author, category, url, books_url, cover_url };
 
   try {
     let response;
@@ -232,6 +234,7 @@ async function editBook(id) {
     document.getElementById('author').value = book.author || '';
     document.getElementById('category').value = book.category || '其他';
     document.getElementById('url').value = book.url || '';
+    document.getElementById('books_url').value = book.books_url || '';
     document.getElementById('cover_url').value = book.cover_url || '';
 
     modalOverlay.classList.add('active');

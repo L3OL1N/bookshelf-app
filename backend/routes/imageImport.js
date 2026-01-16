@@ -147,11 +147,28 @@ router.post('/import-from-image', upload.single('image'), async (req, res) => {
       });
     }
 
+    // 從可能包含說明文字和 markdown 的回應中提取純 JSON
+    function extractJSON(text) {
+      // 嘗試 1: 匹配 ```json...``` markdown 代碼塊
+      const markdownMatch = text.match(/```json\s*\n?([\s\S]*?)\n?```/);
+      if (markdownMatch) {
+        return markdownMatch[1].trim();
+      }
+
+      // 嘗試 2: 匹配第一個完整的 { ... } JSON 物件
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return jsonMatch[0].trim();
+      }
+
+      // 嘗試 3: 返回原始文字（讓錯誤處理機制處理）
+      return text.trim();
+    }
+
     // 嘗試從回應中提取 JSON
     let booksData;
     try {
-      // 移除可能的 markdown 程式碼區塊標記
-      const jsonText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const jsonText = extractJSON(responseText);
       booksData = JSON.parse(jsonText);
     } catch (parseError) {
       console.error('JSON 解析失敗:', parseError);
