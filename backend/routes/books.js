@@ -3,6 +3,27 @@ import db from '../database.js';
 
 const router = express.Router();
 
+// 清理未使用的分類（保留"其他"）
+function cleanupUnusedCategories() {
+  const deleteQuery = `
+    DELETE FROM categories
+    WHERE id IN (
+      SELECT c.id
+      FROM categories c
+      LEFT JOIN books b ON c.name = b.category
+      WHERE b.id IS NULL AND c.name != '其他'
+    )
+  `;
+
+  db.run(deleteQuery, [], function(err) {
+    if (err) {
+      console.error('Error cleaning up unused categories:', err.message);
+    } else if (this.changes > 0) {
+      console.log(`Cleaned up ${this.changes} unused categories`);
+    }
+  });
+}
+
 // GET /api/books - 取得所有書籍
 router.get('/', (req, res) => {
   const query = 'SELECT * FROM books ORDER BY created_at DESC';
@@ -77,6 +98,10 @@ router.put('/:id', (req, res) => {
     if (this.changes === 0) {
       return res.status(404).json({ error: 'Book not found' });
     }
+
+    // 清理未使用的分類
+    cleanupUnusedCategories();
+
     res.json({
       message: 'Book updated successfully',
       book: {
@@ -103,6 +128,10 @@ router.delete('/:id', (req, res) => {
     if (this.changes === 0) {
       return res.status(404).json({ error: 'Book not found' });
     }
+
+    // 清理未使用的分類
+    cleanupUnusedCategories();
+
     res.json({ message: 'Book deleted successfully' });
   });
 });

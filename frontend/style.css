@@ -142,6 +142,68 @@ h1 {
   border-color: var(--accent);
 }
 
+/* Filter Dropdown */
+.filter-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.filter-dropdown-btn {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: 'Noto Serif TC', serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 2px;
+}
+
+.filter-dropdown-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent);
+}
+
+.filter-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 150px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+}
+
+.filter-dropdown-menu.show {
+  display: block;
+}
+
+.filter-dropdown-item {
+  padding: 12px 20px;
+  cursor: pointer;
+  font-family: 'Noto Serif TC', serif;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border);
+}
+
+.filter-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.filter-dropdown-item:hover {
+  background: var(--bg-secondary);
+  color: var(--accent);
+}
+
 .add-btn {
   display: flex;
   align-items: center;

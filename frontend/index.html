@@ -30,15 +30,15 @@
     <div class="controls">
       <div class="filter-tabs">
         <button class="filter-tab active" data-filter="全部">全部</button>
-        <button class="filter-tab" data-filter="小說">小說</button>
-        <button class="filter-tab" data-filter="散文">散文</button>
-        <button class="filter-tab" data-filter="詩集">詩集</button>
-        <button class="filter-tab" data-filter="科技">科技</button>
-        <button class="filter-tab" data-filter="商業">商業</button>
-        <button class="filter-tab" data-filter="自我成長">自我成長</button>
-        <button class="filter-tab" data-filter="歷史">歷史</button>
-        <button class="filter-tab" data-filter="藝術">藝術</button>
-        <button class="filter-tab" data-filter="其他">其他</button>
+        <!-- 動態生成的分類標籤 -->
+        <div class="filter-dropdown-container">
+          <button class="filter-dropdown-btn">
+            更多分類 ▼
+          </button>
+          <div class="filter-dropdown-menu">
+            <!-- 動態生成的下拉分類 -->
+          </div>
+        </div>
       </div>
       <div class="action-buttons">
         <button class="add-btn" onclick="openAIImportModal()">
@@ -99,17 +99,14 @@
             </div>
             <div class="form-group">
               <label class="form-label">類別</label>
-              <select class="form-input" id="category" name="category">
-                <option value="小說">小說</option>
-                <option value="散文">散文</option>
-                <option value="詩集">詩集</option>
-                <option value="科技">科技</option>
-                <option value="商業">商業</option>
-                <option value="自我成長">自我成長</option>
-                <option value="歷史">歷史</option>
-                <option value="藝術">藝術</option>
-                <option value="其他" selected>其他</option>
-              </select>
+              <div style="display: flex; gap: 8px;">
+                <select class="form-input" id="category" name="category" style="flex: 1;">
+                  <!-- 動態載入的分類選項 -->
+                </select>
+                <button type="button" class="btn btn-secondary" onclick="addNewCategory()" style="white-space: nowrap; padding: 0 16px;">
+                  ➕ 新增
+                </button>
+              </div>
             </div>
           </div>
 

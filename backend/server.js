@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import booksRouter from './routes/books.js';
 import imageImportRouter from './routes/imageImport.js';
 import coverFetchRouter from './routes/coverFetch.js';
+import categoriesRouter from './routes/categories.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/books', booksRouter);
 app.use('/api/books', imageImportRouter);
 app.use('/api/books', coverFetchRouter);
+app.use('/api/categories', categoriesRouter);
 
 // 提供前端靜態檔案（可選）
 if (SERVE_FRONTEND) {

@@ -15,15 +15,140 @@ const modalTitle = document.getElementById('modalTitle');
 // State
 let editingBookId = null;
 let allBooks = [];
+let allCategories = [];
 let currentFilter = '全部';
 let selectedImage = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+  loadCategories();
   loadBooks();
   setupFilterTabs();
   setupDragAndDrop();
 });
+
+// Load all categories
+async function loadCategories() {
+  try {
+    const response = await fetch(config.API_ENDPOINTS.categories);
+    if (!response.ok) throw new Error('Failed to fetch categories');
+
+    const categories = await response.json();
+    allCategories = categories;
+
+    populateCategorySelect();
+    populateFilterTabs();
+  } catch (error) {
+    console.error('Error loading categories:', error);
+    // 如果載入失敗，使用預設分類
+    allCategories = [
+      { name: '小說' }, { name: '漫畫' }, { name: '商業' }, { name: '科普' },
+      { name: '藝術' }, { name: '其他' }
+    ];
+    populateCategorySelect()
+    populateFilterTabs();
+  }
+}
+
+// Populate category select dropdown
+function populateCategorySelect() {
+  const categorySelect = document.getElementById('category');
+  if (!categorySelect) return;
+
+  categorySelect.innerHTML = allCategories
+    .map(cat => `<option value="${escapeHtml(cat.name)}" ${cat.name === '其他' ? 'selected' : ''}>${escapeHtml(cat.name)}</option>`)
+    .join('');
+}
+
+// Populate filter tabs (顯示前 9 個分類為 tab，其餘放入下拉選單)
+function populateFilterTabs() {
+  const filterTabsContainer = document.querySelector('.filter-tabs');
+  if (!filterTabsContainer) return;
+
+  const MAX_VISIBLE_TABS = 9; // 最多顯示 9 個分類標籤（不含"全部"）
+  const visibleCategories = allCategories.slice(0, MAX_VISIBLE_TABS);
+  const dropdownCategories = allCategories.slice(MAX_VISIBLE_TABS);
+
+  // 清空容器，重新構建
+  filterTabsContainer.innerHTML = '';
+
+  // 添加"全部"按鈕
+  const allTab = document.createElement('button');
+  allTab.className = 'filter-tab active';
+  allTab.dataset.filter = '全部';
+  allTab.textContent = '全部';
+  filterTabsContainer.appendChild(allTab);
+
+  // 添加可見的分類標籤
+  visibleCategories.forEach(cat => {
+    const tab = document.createElement('button');
+    tab.className = 'filter-tab';
+    tab.dataset.filter = cat.name;
+    tab.textContent = cat.name;
+    filterTabsContainer.appendChild(tab);
+  });
+
+  // 如果有多餘的分類，創建並顯示下拉選單
+  if (dropdownCategories.length > 0) {
+    const dropdownContainer = document.createElement('div');
+    dropdownContainer.className = 'filter-dropdown-container';
+
+    const dropdownBtn = document.createElement('button');
+    dropdownBtn.className = 'filter-dropdown-btn';
+    dropdownBtn.textContent = '更多分類 ▼';
+
+    const dropdownMenu = document.createElement('div');
+    dropdownMenu.className = 'filter-dropdown-menu';
+    dropdownMenu.innerHTML = dropdownCategories
+      .map(cat => `<div class="filter-dropdown-item" data-filter="${escapeHtml(cat.name)}">${escapeHtml(cat.name)}</div>`)
+      .join('');
+
+    dropdownContainer.appendChild(dropdownBtn);
+    dropdownContainer.appendChild(dropdownMenu);
+    filterTabsContainer.appendChild(dropdownContainer);
+  }
+
+  // 重新設置事件監聽器
+  setupFilterTabs();
+  setupDropdownFilter();
+}
+
+// Add new category
+async function addNewCategory() {
+  const categoryName = prompt('請輸入新分類名稱：');
+  if (!categoryName || !categoryName.trim()) return;
+
+  try {
+    const response = await fetch(config.API_ENDPOINTS.categories, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: categoryName.trim() })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      if (response.status === 409) {
+        showToast('⚠️ 此分類已存在');
+      } else {
+        throw new Error(error.error || 'Failed to create category');
+      }
+      return;
+    }
+
+    const result = await response.json();
+    showToast(`✅ 分類「${result.category.name}」已新增`);
+
+    // 重新載入分類並選中新增的分類
+    await loadCategories();
+    const categorySelect = document.getElementById('category');
+    if (categorySelect) {
+      categorySelect.value = result.category.name;
+    }
+  } catch (error) {
+    console.error('Error adding category:', error);
+    showToast('❌ 新增分類失敗');
+  }
+}
 
 // Load all books
 async function loadBooks() {
@@ -60,6 +185,41 @@ function setupFilterTabs() {
       tab.classList.add('active');
       filterBooks(tab.dataset.filter);
     });
+  });
+}
+
+// Setup dropdown filter
+function setupDropdownFilter() {
+  const dropdownBtn = document.querySelector('.filter-dropdown-btn');
+  const dropdownMenu = document.querySelector('.filter-dropdown-menu');
+
+  if (!dropdownBtn || !dropdownMenu) return;
+
+  // 切換下拉選單顯示
+  dropdownBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdownMenu.classList.toggle('show');
+  });
+
+  // 點擊下拉選項
+  document.querySelectorAll('.filter-dropdown-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const filter = item.dataset.filter;
+
+      // 移除所有 tab 的 active 狀態
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+
+      // 過濾書籍
+      filterBooks(filter);
+
+      // 關閉下拉選單
+      dropdownMenu.classList.remove('show');
+    });
+  });
+
+  // 點擊外部關閉下拉選單
+  document.addEventListener('click', () => {
+    dropdownMenu.classList.remove('show');
   });
 }
 

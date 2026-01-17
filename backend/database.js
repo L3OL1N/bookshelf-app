@@ -15,7 +15,7 @@ const db = new sqlite3.Database(join(__dirname, 'bookshelf.db'), (err) => {
 });
 
 const initializeDatabase = () => {
-  const createTableQuery = `
+  const createBooksTableQuery = `
     CREATE TABLE IF NOT EXISTS books (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -28,9 +28,17 @@ const initializeDatabase = () => {
     )
   `;
 
-  db.run(createTableQuery, (err) => {
+  const createCategoriesTableQuery = `
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  db.run(createBooksTableQuery, (err) => {
     if (err) {
-      console.error('Error creating table:', err.message);
+      console.error('Error creating books table:', err.message);
     } else {
       console.log('Books table ready');
       // Add category column to existing tables if it doesn't exist
@@ -45,6 +53,28 @@ const initializeDatabase = () => {
           console.error('Note: books_url column may already exist');
         }
       });
+    }
+  });
+
+  db.run(createCategoriesTableQuery, (err) => {
+    if (err) {
+      console.error('Error creating categories table:', err.message);
+    } else {
+      console.log('Categories table ready');
+      // Insert default categories
+      const defaultCategories = ['小說', '散文', '詩集', '科技', '商業', '自我成長', '歷史', '藝術', '其他'];
+      const insertCategory = db.prepare('INSERT OR IGNORE INTO categories (name) VALUES (?)');
+
+      defaultCategories.forEach(category => {
+        insertCategory.run(category, (insertErr) => {
+          if (insertErr) {
+            console.error(`Error inserting category ${category}:`, insertErr.message);
+          }
+        });
+      });
+
+      insertCategory.finalize();
+      console.log('Default categories initialized');
     }
   });
 };

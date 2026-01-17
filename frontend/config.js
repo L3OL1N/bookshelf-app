@@ -17,6 +17,7 @@ const config = {
   API_BASE_URL,
   API_ENDPOINTS: {
     books: `${API_BASE_URL}/books`,
+    categories: `${API_BASE_URL}/categories`,
     importFromImage: `${API_BASE_URL}/books/import-from-image`,
     batchFetchCovers: `${API_BASE_URL}/books/batch-fetch-covers`,
     fetchCover: (id) => `${API_BASE_URL}/books/${id}/fetch-cover`,
