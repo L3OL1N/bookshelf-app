@@ -115,12 +115,16 @@ h1 {
   margin-bottom: 40px;
   flex-wrap: wrap;
   gap: 16px;
+  position: relative;
+  z-index: 10;
 }
 
 .filter-tabs {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 10;
 }
 
 .filter-tab {
@@ -146,6 +150,7 @@ h1 {
 .filter-dropdown-container {
   position: relative;
   display: inline-block;
+  z-index: 100;
 }
 
 .filter-dropdown-btn {
@@ -167,17 +172,16 @@ h1 {
 
 .filter-dropdown-menu {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 4px);
   left: 0;
-  margin-top: 4px;
   background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   min-width: 150px;
   max-height: 300px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 9999;
   display: none;
 }
 
@@ -937,5 +941,146 @@ h1 {
 
   .image-preview-container img {
     max-height: 300px;
+  }
+}
+
+/* Pixel 6 Pro 專用優化 (412x892px, 像素比 3.5) */
+@media only screen and (max-width: 450px) {
+  /* 1. Book card 寬度改成 1/2 螢幕寬度 */
+  .book-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .book-card {
+    min-width: 0;
+  }
+
+  /* 2. Filter tabs 最大兩行，自動左右平均分配寬度 */
+  .filter-tabs {
+    display: grid;
+    grid-template-columns: repeat(5,1fr);
+    gap: 6px;
+    width: 100%;
+  }
+
+  .filter-tab {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .filter-dropdown-container {
+    grid-column: 1 / -1;
+  }
+
+  .filter-dropdown-menu {
+    position: unset;
+  }
+
+  .filter-dropdown-btn {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+  }
+
+  /* 3. Header 和 stats-bar 縮小 */
+  header {
+    margin: 15px 0;
+  }
+
+  h1 {
+    font-size: 2rem;
+    letter-spacing: 0.1em;
+  }
+
+  .subtitle {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+  }
+
+  header::after {
+    width: 80px;
+    margin: 16px auto 0;
+  }
+
+  .stats-bar {
+    gap: 24px;
+    padding: 8px;
+    margin-bottom: 16px;
+  }
+
+  .stat-item {
+    flex: 1;
+  }
+
+  .stat-number {
+    font-size: 1.6rem;
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+  }
+
+  /* Controls 佈局優化 */
+  .controls {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .action-buttons {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .add-btn {
+    flex: 1;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+  }
+
+  .add-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Container 縮小 padding */
+  .container {
+    padding: 16px 12px;
+  }
+
+  /* Book card 內容優化 */
+  .book-info {
+    padding: 12px;
+  }
+
+  .book-title {
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+  }
+
+  .book-author {
+    font-size: 0.75rem;
+    margin-bottom: 6px;
+  }
+
+  .book-type-badge {
+    top: 8px;
+    left: 8px;
+    padding: 3px 8px;
+    font-size: 0.6rem;
+  }
+
+  .book-actions {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .book-actions button {
+    padding: 6px 12px;
+    font-size: 0.75rem;
   }
 }

@@ -62,7 +62,7 @@ const initializeDatabase = () => {
     } else {
       console.log('Categories table ready');
       // Insert default categories
-      const defaultCategories = ['小說', '散文', '詩集', '科技', '商業', '自我成長', '歷史', '藝術', '其他'];
+      const defaultCategories = ['小說', '科普', '財經', '科技', '商業', '心理學', '漫畫', '輕小說', '農業', '藝術', '其他'];
       const insertCategory = db.prepare('INSERT OR IGNORE INTO categories (name) VALUES (?)');
 
       defaultCategories.forEach(category => {
